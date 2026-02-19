@@ -4,35 +4,35 @@ Author: Master Engineer Erik Armenta
 """
 
 # Column mapping patterns and aliases
+# Strict column mapping patterns for SAP
+SAP_COLUMN_PATTERNS = {
+    'part_number': ['Component number'],
+    'quantity': ['Component quantity'],
+    'unit': ['Component UoM'],
+    'description': ['Description', 'Material Description', 'Item Description'] # Keep generic for description as user didn't specify
+}
+
+# Strict column mapping patterns for HPLM
+HPLM_COLUMN_PATTERNS = {
+    'part_number': ['ERP Part Number'],
+    'quantity': ['Quantity'],
+    'unit': ['Unit Of Measure'],
+    'description': ['Description', 'Material Description'] # Keep generic for description
+}
+
+# Generic patterns as fallback (optional, but keeping for safety if strictly needed)
 COLUMN_PATTERNS = {
-    'part_number': [
-        'material no.', 'material no', 'material_no',
-        'part number', 'part_number', 'partnumber',
-        'sku', 'item code', 'item_code', 'itemcode',
-        'material', 'parte', 'código', 'codigo',
-        'mat no', 'mat_no', 'matno'
-    ],
-    'quantity': [
-        'quantity', 'qty', 'amount', 'cantidad',
-        'cant', 'qnty', 'quant'
-    ],
-    'unit': [
-        'unit', 'uom', 'unit of measure', 'unit_of_measure',
-        'unidad', 'um', 'medida', 'units'
-    ],
-    'description': [
-        'description', 'desc', 'material description',
-        'item description', 'descripción', 'descripcion',
-        'material_description', 'item_description',
-        'name', 'nombre', 'text'
-    ]
+    'part_number': ['Component number', 'ERP Part Number', 'material no.', 'part number'],
+    'quantity': ['Component quantity', 'Quantity', 'qty'],
+    'unit': ['Component UoM', 'Unit Of Measure', 'unit'],
+    'description': ['Description', 'description']
 }
 
 # Similarity threshold for fuzzy matching (0.0 to 1.0)
-SIMILARITY_THRESHOLD = 0.7
+SIMILARITY_THRESHOLD = 0.8 # Increased for stricter matching
 
 # High similarity threshold for precise matching
-HIGH_SIMILARITY_THRESHOLD = 0.85
+HIGH_SIMILARITY_THRESHOLD = 0.9
 
 # Supported file formats
 SUPPORTED_FORMATS = ['.xlsx', '.xls', '.csv']
@@ -43,8 +43,8 @@ MAX_ROWS_WITHOUT_FILTER = 500
 # UI Styling
 COLORS = {
     'correct': '#10b981',      # Emerald green
-    'discrepancy': '#f59e0b',  # Amber
-    'missing': '#dc2626',      # Industrial red
+    'sobra': '#f59e0b',        # Amber (Warning/Surplus)
+    'falta': '#dc2626',        # Red (Missing/Deficit)
     'primary': '#1e40af',      # Blue
     'secondary': '#64748b'     # Slate gray
 }
@@ -52,16 +52,14 @@ COLORS = {
 # Status indicators
 STATUS_ICONS = {
     'correct': '✅',
-    'discrepancy': '⚠️',
-    'missing_sap': '❌',
-    'missing_software_b': '❌'
+    'sobra': '⚠️',
+    'falta': '❌',
 }
 
 STATUS_LABELS = {
     'correct': 'Correcto',
-    'discrepancy': 'Discrepancia',
-    'missing_sap': 'Faltante en SAP',
-    'missing_software_b': 'Faltante en Software B'
+    'sobra': 'Sobra',
+    'falta': 'Falta',
 }
 
 # Export settings
