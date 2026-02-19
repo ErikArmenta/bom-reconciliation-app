@@ -8,7 +8,10 @@ import pandas as pd
 from difflib import SequenceMatcher
 from typing import Dict, Optional, Tuple, List
 
-from config import COLUMN_PATTERNS, SIMILARITY_THRESHOLD, HIGH_SIMILARITY_THRESHOLD
+from config import (
+    COLUMN_PATTERNS, SAP_COLUMN_PATTERNS, HPLM_COLUMN_PATTERNS,
+    SIMILARITY_THRESHOLD, HIGH_SIMILARITY_THRESHOLD
+)
 
 
 def calculate_similarity(str1: str, str2: str) -> float:
@@ -75,26 +78,26 @@ def map_bom_columns(df: pd.DataFrame, source_name: str = "") -> Dict[str, any]:
     
     Args:
         df: DataFrame to map
-        source_name: Name of the source (for display purposes)
+        source_name: Name of the source (SAP or HPLM)
         
     Returns:
-        Dictionary with mapping results:
-        {
-            'part_number': {'column': 'Material No.', 'confidence': 1.0},
-            'quantity': {'column': 'Quantity', 'confidence': 0.95},
-            'unit': {'column': 'Unit', 'confidence': 1.0},
-            'description': {'column': 'Description', 'confidence': 0.9},
-            'is_valid': True/False,
-            'missing_columns': []
-        }
+        Dictionary with mapping results
     """
     mapping = {}
     missing_columns = []
     
     df_columns = df.columns.tolist()
     
+    # Select appropriate patterns based on source
+    if source_name == "SAP":
+        patterns_dict = SAP_COLUMN_PATTERNS
+    elif source_name == "HPLM":
+        patterns_dict = HPLM_COLUMN_PATTERNS
+    else:
+        patterns_dict = COLUMN_PATTERNS
+    
     # Map each required column type
-    for col_type, patterns in COLUMN_PATTERNS.items():
+    for col_type, patterns in patterns_dict.items():
         matched_col, confidence = find_similar_columns(df_columns, patterns)
         
         if matched_col:
