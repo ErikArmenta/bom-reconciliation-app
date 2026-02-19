@@ -33,40 +33,46 @@ def generate_floor_validation_checklist(
     if include_correct:
         df_validation = df_comparison.copy()
     else:
-        # Only include items with issues (discrepancies or missing)
+        # Only include items with issues (Falta or Sobra)
         df_validation = df_comparison[
-            df_comparison['Status'].str.contains('Discrepancia|Faltante', na=False)
+            df_comparison['Status'].str.contains('Falta|Sobra', na=False)
         ].copy()
     
     # Sort by Part Number for easier floor validation
     df_validation = df_validation.sort_values('Part Number')
     
     # Create validation columns
-    df_validation['Validado en Piso'] = '☐'  # Checkbox
-    df_validation['Cantidad Real'] = ''
-    df_validation['Observaciones'] = ''
-    df_validation['Validado Por'] = ''
-    df_validation['Fecha'] = ''
+    df_validation['Validado'] = '☐'  # Checkbox
+    df_validation['Conteo Físico'] = '' # Input for physical count
+    
+    # Select description (prioritize SAP, then HPLM)
+    df_validation['Descripción'] = df_validation.apply(
+        lambda x: x['SAP Description'] if pd.notna(x['SAP Description']) and str(x['SAP Description']).strip() != '' 
+        else x['HPLM Description'], axis=1
+    )
     
     # Reorder columns for floor validation
+    # Clean data only: Part, Desc, Qty, Unit
     validation_columns = [
-        'Validado en Piso',
+        'Validado',
         'Part Number',
+        'Descripción',
         'SAP Quantity',
-        'Software B Quantity',
-        'Cantidad Real',
-        'SAP Unit',
-        'Software B Unit',
-        'SAP Description',
-        'Status',
-        'Issues',
-        'Observaciones',
-        'Validado Por',
-        'Fecha'
+        'HPLM Quantity',
+        'SAP Unit', # Assuming SAP unit is master or they match enough
+        'Conteo Físico'
     ]
     
-    # Only include columns that exist
-    validation_columns = [col for col in validation_columns if col in df_validation.columns]
+    # Only include all columns (we constructed Description so it exists)
+    # Ensure existing cols are present
+    final_cols = []
+    for col in validation_columns:
+        if col in df_validation.columns:
+            final_cols.append(col)
+        elif col == 'SAP Unit' and 'SAP Unit' in df_validation.columns:
+             final_cols.append(col)
+        # We need to make sure we don't fail if a column is missing, but our construction ensures they should be there
+    
     df_validation = df_validation[validation_columns]
     
     # Create Excel with formatting
@@ -107,13 +113,6 @@ def generate_floor_validation_checklist(
             'font_size': 14
         })
         
-        issue_format = workbook.add_format({
-            'border': 1,
-            'bg_color': '#fee2e2',
-            'valign': 'vcenter',
-            'text_wrap': True
-        })
-        
         input_format = workbook.add_format({
             'border': 1,
             'bg_color': '#f0f9ff',
@@ -131,7 +130,7 @@ def generate_floor_validation_checklist(
         
         # Add title and metadata
         current_date = datetime.now().strftime("%d/%m/%Y %H:%M")
-        worksheet.merge_range('A1:M1', 'CHECKLIST DE VALIDACIÓN EN PISO - BOM', title_format)
+        worksheet.merge_range('A1:G1', 'CHECKLIST DE VALIDACIÓN EN PISO - BOM (SAP vs HPLM)', title_format)
         
         info_format = workbook.add_format({'bold': True, 'font_size': 10})
         worksheet.write('A2', f'Fecha de Generación: {current_date}', info_format)
@@ -148,30 +147,22 @@ def generate_floor_validation_checklist(
                 col_name = df_validation.columns[col_num]
                 
                 # Apply special formatting
-                if col_name == 'Validado en Piso':
+                if col_name == 'Validado':
                     worksheet.write(row_num, col_num, value, checkbox_format)
-                elif col_name in ['Cantidad Real', 'Observaciones', 'Validado Por', 'Fecha']:
+                elif col_name == 'Conteo Físico':
                     worksheet.write(row_num, col_num, value, input_format)
-                elif col_name in ['Status', 'Issues']:
-                    worksheet.write(row_num, col_num, str(value) if pd.notna(value) else '', issue_format)
                 else:
                     worksheet.write(row_num, col_num, str(value) if pd.notna(value) else '', cell_format)
         
         # Set column widths
         column_widths = {
-            'Validado en Piso': 8,
-            'Part Number': 15,
+            'Validado': 8,
+            'Part Number': 18,
+            'Descripción': 45,
             'SAP Quantity': 12,
-            'Software B Quantity': 12,
-            'Cantidad Real': 12,
-            'SAP Unit': 8,
-            'Software B Unit': 8,
-            'SAP Description': 30,
-            'Status': 18,
-            'Issues': 25,
-            'Observaciones': 25,
-            'Validado Por': 15,
-            'Fecha': 12
+            'HPLM Quantity': 12,
+            'SAP Unit': 10,
+            'Conteo Físico': 15
         }
         
         for col_num, col_name in enumerate(df_validation.columns):
@@ -182,39 +173,26 @@ def generate_floor_validation_checklist(
         worksheet.set_row(0, 25)  # Title row
         worksheet.set_row(start_row, 30)  # Header row
         
-        # Add instructions sheet
+        # Add signature block at the bottom
+        last_row = start_row + len(df_validation) + 4
+        
+        signature_format = workbook.add_format({'top': 1, 'align': 'center'})
+        
+        worksheet.write(last_row, 1, "Realizado Por", signature_format)
+        worksheet.write(last_row, 4, "Revisado Por", signature_format)
+        worksheet.write(last_row, 6, "Fecha", signature_format)
+
+        # Add instructions sheet (simplified)
         instructions_sheet = workbook.add_worksheet('Instrucciones')
         instructions_sheet.set_column('A:A', 80)
         
         instructions = [
-            ('INSTRUCCIONES PARA VALIDACIÓN EN PISO', title_format),
+            ('INSTRUCCIONES', title_format),
             ('', None),
-            ('1. PREPARACIÓN:', info_format),
-            ('   - Imprima este documento', None),
-            ('   - Lleve una pluma o marcador', None),
-            ('   - Tenga acceso al área de almacén/producción', None),
-            ('', None),
-            ('2. VALIDACIÓN:', info_format),
-            ('   - Localice físicamente cada material por su Part Number', None),
-            ('   - Verifique la cantidad real en piso', None),
-            ('   - Anote la cantidad real en la columna "Cantidad Real"', None),
-            ('   - Marque la casilla ☐ cuando valide el item', None),
-            ('', None),
-            ('3. OBSERVACIONES:', info_format),
-            ('   - Anote cualquier discrepancia encontrada', None),
-            ('   - Indique si el material está dañado, vencido, etc.', None),
-            ('   - Registre ubicación física si es relevante', None),
-            ('', None),
-            ('4. FINALIZACIÓN:', info_format),
-            ('   - Firme en "Validado Por" cada item verificado', None),
-            ('   - Anote la fecha de validación', None),
-            ('   - Escanee o fotografíe el documento completado', None),
-            ('   - Entregue a ingeniería para actualización del sistema', None),
-            ('', None),
-            ('IMPORTANTE:', info_format),
-            ('⚠️ Solo se incluyen items con DISCREPANCIAS o FALTANTES', None),
-            ('⚠️ Priorice items críticos para producción', None),
-            ('⚠️ Reporte inmediatamente faltantes críticos', None),
+            ('1. Verifique físicamente cada número de parte listado.', None),
+            ('2. Anote la cantidad real encontrada en la columna "Conteo Físico".', None),
+            ('3. Marque la casilla "Validado" una vez verificado.', None),
+            ('4. Firme al finalizar.', None)
         ]
         
         for row_num, (text, fmt) in enumerate(instructions):
