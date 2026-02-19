@@ -50,7 +50,7 @@ def main():
     st.sidebar.markdown("### 📋 Instrucciones")
     st.sidebar.info(
         "1. Cargue el archivo BOM de SAP\n"
-        "2. Cargue el archivo BOM de Software B\n"
+        "2. Cargue el archivo BOM de HPLM\n"
         "3. Revise el mapeo de columnas\n"
         "4. Analice los resultados\n"
         "5. Edite discrepancias si es necesario\n"
@@ -73,11 +73,11 @@ def main():
         )
     
     with col2:
-        st.markdown("### Software B BOM")
+        st.markdown("### HPLM BOM")
         software_b_file = render_file_uploader(
-            "Cargar archivo Software B",
+            "Cargar archivo HPLM",
             key="software_b_uploader",
-            help_text="Archivo BOM del sistema secundario (Excel o CSV)"
+            help_text="Archivo BOM del sistema HPLM (Excel o CSV)"
         )
     
     # Process files if both are uploaded
@@ -91,10 +91,10 @@ def main():
                 st.error(f"❌ Error en archivo SAP: {error_sap}")
                 return
             
-            # Load Software B file
+            # Load HPLM file
             df_software_b, error_sb = load_file(software_b_file, software_b_file.name)
             if error_sb:
-                st.error(f"❌ Error en archivo Software B: {error_sb}")
+                st.error(f"❌ Error en archivo HPLM: {error_sb}")
                 return
             
             # Validate DataFrames
@@ -103,7 +103,7 @@ def main():
                 st.error(f"❌ {error_val_sap}")
                 return
             
-            error_val_sb = validate_dataframe(df_software_b, "Software B")
+            error_val_sb = validate_dataframe(df_software_b, "HPLM")
             if error_val_sb:
                 st.error(f"❌ {error_val_sb}")
                 return
@@ -115,7 +115,7 @@ def main():
             with col1:
                 st.info(f"📊 SAP: {len(df_sap)} filas, {len(df_sap.columns)} columnas")
             with col2:
-                st.info(f"📊 Software B: {len(df_software_b)} filas, {len(df_software_b.columns)} columnas")
+                st.info(f"📊 HPLM: {len(df_software_b)} filas, {len(df_software_b.columns)} columnas")
         
         st.markdown("---")
         
@@ -124,7 +124,7 @@ def main():
         
         with st.spinner("🔍 Mapeando columnas..."):
             mapping_sap = map_bom_columns(df_sap, "SAP")
-            mapping_software_b = map_bom_columns(df_software_b, "Software B")
+            mapping_software_b = map_bom_columns(df_software_b, "HPLM")
         
         col1, col2 = st.columns(2)
         
@@ -132,7 +132,7 @@ def main():
             render_mapping_info(mapping_sap, "Mapeo SAP")
         
         with col2:
-            render_mapping_info(mapping_software_b, "Mapeo Software B")
+            render_mapping_info(mapping_software_b, "Mapeo HPLM")
         
         # Validate mappings
         valid_sap, error_sap = validate_mapping(mapping_sap)
@@ -143,7 +143,7 @@ def main():
             return
         
         if not valid_sb:
-            st.error(f"❌ Error en mapeo Software B: {error_sb}")
+            st.error(f"❌ Error en mapeo HPLM: {error_sb}")
             return
         
         st.success("✅ Mapeo de columnas completado exitosamente")
@@ -196,10 +196,9 @@ def main():
                 - **Correctos**: {report['Correctos']} ({report['Porcentaje Correcto']}%)
                 - **Con Problemas**: {report['Total con Problemas']} ({report['Porcentaje con Problemas']}%)
                 
-                **Desglose de Problemas:**
-                - Discrepancias: {report['Discrepancias']}
-                - Faltantes en SAP: {report['Faltantes en SAP']}
-                - Faltantes en Software B: {report['Faltantes en Software B']}
+                - Discrepancias: {report.get('Discrepancias', 0)}
+                - Faltantes en HPLM: {report.get('Faltantes en Software B', 0)}
+                - Sobrantes en HPLM: {report.get('Sobrantes/Excedentes (+)', 0)}
                 """)
             
             st.markdown("---")
@@ -276,7 +275,7 @@ def main():
                 excel_buffer = export_to_excel(
                     st.session_state.edited_data,
                     st.session_state.edited_data[
-                        st.session_state.edited_data['Status'].str.contains('Discrepancia|Faltante', na=False)
+                        st.session_state.edited_data['Status'].str.contains('Falta|Sobra', na=False)
                     ],
                     st.session_state.status_report
                 )
@@ -311,8 +310,9 @@ def main():
             
             with col3:
                 # Export only discrepancies
+                # Filter by simple "Falta" or "Sobra" presence in Status
                 df_issues = st.session_state.edited_data[
-                    st.session_state.edited_data['Status'].str.contains('Discrepancia|Faltante', na=False)
+                    st.session_state.edited_data['Status'].str.contains('Falta|Sobra', na=False)
                 ]
                 
                 if not df_issues.empty:
