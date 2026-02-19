@@ -99,16 +99,16 @@ def render_kpi_metrics(report: Dict):
     
     with col3:
         st.metric(
-            label="⚠️ Discrepancias",
-            value=report['Discrepancias'],
+            label="⚠️ Sobrantes (HPLM)",
+            value=report.get('Sobrantes/Excedentes (+)', 0),
             delta=None,
             delta_color="inverse"
         )
     
     with col4:
         st.metric(
-            label="❌ Faltantes",
-            value=report['Faltantes en SAP'] + report['Faltantes en Software B'],
+            label="❌ Faltantes (HPLM)",
+            value=report.get('Faltantes/Diferencias (-)', 0),
             delta=None,
             delta_color="inverse"
         )
@@ -122,15 +122,15 @@ def render_health_chart(report: Dict):
         report: Status report dictionary from generate_status_report
     """
     # Prepare data
-    labels = ['Correctos', 'Discrepancias', 'Faltantes']
+    labels = ['Correctos', 'Sobrantes', 'Faltantes']
     values = [
         report['Correctos'],
-        report['Discrepancias'],
-        report['Faltantes en SAP'] + report['Faltantes en Software B']
+        report.get('Sobrantes/Excedentes (+)', 0),
+        report.get('Faltantes/Diferencias (-)', 0)
     ]
     
     # Professional color palette
-    colors_list = [COLORS['correct'], COLORS['discrepancy'], COLORS['missing']]
+    colors_list = [COLORS['correct'], COLORS['sobra'], COLORS['falta']]
     
     # Create donut chart
     fig = go.Figure(data=[go.Pie(
@@ -246,7 +246,7 @@ def render_data_filter_options():
     
     filter_option = st.sidebar.radio(
         "Mostrar:",
-        options=['Ver Todo', 'Solo Discrepancias', 'Solo Faltantes'],
+        options=['Ver Todo', 'Solo Problemas (Falta/Sobra)', 'Solo Sobrantes', 'Solo Faltantes'],
         index=0,
         help="Filtra los datos mostrados en el editor para mejorar el rendimiento con datasets grandes"
     )
@@ -265,9 +265,11 @@ def apply_data_filter(df, filter_option: str):
     Returns:
         Filtered DataFrame
     """
-    if filter_option == 'Solo Discrepancias':
-        return df[df['Status'].str.contains('Discrepancia', na=False)]
+    if filter_option == 'Solo Problemas (Falta/Sobra)':
+        return df[df['Status'].str.contains('Falta|Sobra', na=False)]
+    elif filter_option == 'Solo Sobrantes':
+        return df[df['Status'].str.contains('Sobra', na=False)]
     elif filter_option == 'Solo Faltantes':
-        return df[df['Status'].str.contains('Faltante', na=False)]
+        return df[df['Status'].str.contains('Falta', na=False)]
     else:
         return df
