@@ -243,15 +243,15 @@ def compare_boms(
              result['Issues'] = 'OK'
         else:
             if difference > 0:
-                # SAP(10) - HPLM(8) = 2. Falta 2 en HPLM.
-                status = 'falta'
-                result['Status'] = f"{STATUS_ICONS[status]} {STATUS_LABELS[status]}"
-                result['Issues'] = f"Falta {difference:g} en HPLM"
-            else:
-                # SAP(10) - HPLM(12) = -2. Sobra 2 en HPLM.
+                # SAP(10) - HPLM(8) = 2. Sobra 2 en SAP.
                 status = 'sobra'
                 result['Status'] = f"{STATUS_ICONS[status]} {STATUS_LABELS[status]}"
-                result['Issues'] = f"Sobra {abs(difference):g} en HPLM"
+                result['Issues'] = f"Sobra {difference:g} en SAP"
+            else:
+                # SAP(10) - HPLM(12) = -2. Falta 2 en SAP.
+                status = 'falta'
+                result['Status'] = f"{STATUS_ICONS[status]} {STATUS_LABELS[status]}"
+                result['Issues'] = f"Falta {abs(difference):g} en SAP"
         
         # Check description if strictly needed, but user emphasized quantity/part logic mainly.
         # We will ignore description mismatches for status to focus on "Falta/Sobra" as requested.
@@ -306,11 +306,9 @@ def generate_status_report(df_comparison: pd.DataFrame) -> Dict[str, any]:
         'Porcentaje Correcto': round((correct / total * 100) if total > 0 else 0, 2),
         'Porcentaje con Problemas': round((total_issues / total * 100) if total > 0 else 0, 2),
         # Keep keys for compatibility if needed, but updated values
-        'Faltantes en SAP': 0, # Deprecated logic
-        'Faltantes en Software B': falta, # Mapping "Falta" roughly here for old UI compatibility if needed
+        'Faltantes en SAP': falta,
+        'Faltantes en Software B': 0, # Deprecated logic
         'Discrepancias': sobra # Mapping "Sobra" roughly here
     }
-    
-    return report
     
     return report
