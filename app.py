@@ -197,8 +197,8 @@ def main():
                 - **Con Problemas**: {report['Total con Problemas']} ({report['Porcentaje con Problemas']}%)
                 
                 - Discrepancias: {report.get('Discrepancias', 0)}
-                - Faltantes en HPLM: {report.get('Faltantes en Software B', 0)}
-                - Sobrantes en HPLM: {report.get('Sobrantes/Excedentes (+)', 0)}
+                - Faltantes en SAP: {report.get('Faltantes en SAP', 0)}
+                - Sobrantes en SAP: {report.get('Sobrantes/Excedentes (+)', 0)}
                 """)
             
             st.markdown("---")
