@@ -99,7 +99,7 @@ def render_kpi_metrics(report: Dict):
     
     with col3:
         st.metric(
-            label="⚠️ Sobrantes (HPLM)",
+            label="⚠️ Sobrantes (SAP)",
             value=report.get('Sobrantes/Excedentes (+)', 0),
             delta=None,
             delta_color="inverse"
@@ -107,7 +107,7 @@ def render_kpi_metrics(report: Dict):
     
     with col4:
         st.metric(
-            label="❌ Faltantes (HPLM)",
+            label="❌ Faltantes (SAP)",
             value=report.get('Faltantes/Diferencias (-)', 0),
             delta=None,
             delta_color="inverse"
